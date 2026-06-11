@@ -1,9 +1,9 @@
 apiVersion: v2
 name: quench-common
-description: Quenchworks shared Helm library chart. Labels, hardened security contexts, and a digest-only image resolver.
+description: Quenchworks shared Helm library chart. Labels, hardened security contexts, a digest-only image resolver, and shared pod-spec knobs (scheduling, lifecycle, probes, extensibility).
 type: library
-version: 0.0.0
-appVersion: "0.0.0"
+version: 0.0.1
+appVersion: "0.0.1"
 icon: https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/chart-icon.png
 maintainers:
   - name: mkabumattar
