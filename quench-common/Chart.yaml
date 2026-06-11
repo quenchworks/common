@@ -4,7 +4,7 @@ description: Quenchworks shared Helm library chart. Labels, hardened security co
 type: library
 version: 0.0.0
 appVersion: "0.0.0"
-icon: https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/icon-512.png
+icon: https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/chart-icon.png
 maintainers:
   - name: mkabumattar
 home: https://quenchworks.mkabumattar.com
