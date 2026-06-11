@@ -1,0 +1,6 @@
+# helm dependency / package artifacts
+Chart.lock
+charts/
+*.tgz
+dist/
+.DS_Store

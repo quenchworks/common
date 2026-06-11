@@ -1,0 +1,13 @@
+apiVersion: v2
+name: quench-common
+description: Quenchworks shared Helm library chart. Labels, hardened security contexts, and a digest-only image resolver.
+type: library
+version: 0.0.0
+appVersion: "0.0.0"
+maintainers:
+  - name: mkabumattar
+home: https://quenchworks.mkabumattar.com
+sources:
+  - https://github.com/quenchworks/common
+# Published as an OCI artifact to oci://ghcr.io/quenchworks/charts/quench-common.
+# App charts depend on it via repository: oci://ghcr.io/quenchworks/charts.
