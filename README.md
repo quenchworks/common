@@ -1,20 +1,16 @@
-# Quenchworks common
+# quench-common
 
-The shared Helm **library chart** (`quench-common`) for the
-[Quenchworks](https://github.com/quenchworks) catalog: common labels, hardened pod/container
-security contexts, and the digest-only image resolver that every app chart builds on. It is the one
-place the catalog's security baseline is defined, so all 28 charts inherit it identically.
+The shared Helm **library chart** behind the [QuenchWorks](https://github.com/quenchworks) catalog. It's the one place the security baseline is defined, so all 52 app charts inherit the exact same hardening: identical labels, identical pod and container security contexts, and a digest-only image resolver that makes shipping an unpinned image impossible.
 
-It is published as an OCI artifact and consumed by the app charts in
-[`quenchworks/charts`](https://github.com/quenchworks/charts).
+Harden it once here, and every chart in the catalog moves together.
 
-## Published location
+Published as an OCI artifact and consumed by the charts in [quenchworks/charts](https://github.com/quenchworks/charts):
 
 ```
 oci://ghcr.io/quenchworks/charts/quench-common
 ```
 
-App charts depend on it like this:
+## How charts depend on it
 
 ```yaml
 # Chart.yaml
@@ -26,24 +22,19 @@ dependencies:
 
 ## What it provides
 
-- `quench-common.fullname` / `name` / `labels` / `selectorLabels`
-- `quench-common.image` — resolves an image strictly by `repository@sha256:digest`
-  (a tag-only reference is refused on purpose, so a chart can never ship an unpinned image)
-- `quench-common.podSecurityContext` — `runAsNonRoot`, uid/gid/fsGroup 1001, seccomp RuntimeDefault
-- `quench-common.containerSecurityContext` — read-only rootfs, no privilege escalation, drop ALL caps
-- shared knob surface used across charts: scheduling, probes, extra env/volumes/volumeMounts,
-  init containers, sidecars, lifecycle hooks, and security-context overrides
+- **Naming and labels**: `quench-common.fullname` / `name` / `labels` / `selectorLabels`, consistent across the whole catalog.
+- **The digest-only image resolver**: `quench-common.image` resolves an image strictly by `repository@sha256:digest`. A tag-only reference is refused on purpose, so a chart can never ship an unpinned image.
+- **Hardened pod security context**: `quench-common.podSecurityContext` sets `runAsNonRoot`, uid/gid/fsGroup 1001, seccomp `RuntimeDefault`.
+- **Hardened container security context**: `quench-common.containerSecurityContext` sets a read-only root filesystem, no privilege escalation, drop ALL capabilities.
+- **A shared knob surface**: the override points every chart exposes the same way, including scheduling, probes, extra env/volumes/volumeMounts, init containers, sidecars, lifecycle hooks, and security-context overrides.
 
 ## Versioning
 
-Patch-bump the chart `version` on every change and never overwrite a published version; app charts
-then move to the new version on their next release. (Library-chart semantics: there is nothing to
-install directly.)
+Patch-bump the chart `version` on every change, and never overwrite a published version. App charts then move to the new version on their next release. This is a library chart, so there's nothing to `helm install` directly.
 
 ## Release
 
-Pushing to `main` runs `.github/workflows/release-common.yml`: lint, package, push the
-OCI chart to GHCR, and cosign-sign it (keyless).
+Pushing to `main` runs `.github/workflows/release-common.yml`: lint, package, push the OCI chart to GHCR, and cosign-sign it (keyless).
 
 ## License
 
