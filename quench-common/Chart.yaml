@@ -2,12 +2,12 @@ apiVersion: v2
 name: quench-common
 description: Quenchworks shared Helm library chart. Labels, hardened security contexts, a digest-only image resolver, and shared pod-spec knobs (scheduling, lifecycle, probes, extensibility).
 type: library
-version: 0.0.1
+version: 0.0.2
 appVersion: "0.0.1"
 icon: https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/chart-icon.png
 maintainers:
   - name: mkabumattar
-home: https://quenchworks.mkabumattar.com
+home: https://quench-works.com
 sources:
   - https://github.com/quenchworks/common
 # Published as an OCI artifact to oci://ghcr.io/quenchworks/charts/quench-common.
