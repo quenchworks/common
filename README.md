@@ -1,6 +1,10 @@
 # quench-common
 
-The shared Helm **library chart** behind the [QuenchWorks](https://github.com/quenchworks) catalog. It's the one place the security baseline is defined, so all 52 app charts inherit the exact same hardening: identical labels, identical pod and container security contexts, and a digest-only image resolver that makes shipping an unpinned image impossible.
+The shared Helm **library chart** behind the [QuenchWorks](https://github.com/quenchworks) catalog. It's the one place the security baseline is defined, so all 54 app charts inherit the exact same hardening: identical labels, identical pod and container security contexts, and a digest-only image resolver that makes shipping an unpinned image impossible.
+
+<p align="center">
+  <a href="https://quench-works.com"><img src="https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/demo.gif" alt="QuenchWorks in a terminal: run a 0-CVE image, verify it with cosign, deploy the Helm chart, and watch the pod reach Running." width="760"></a>
+</p>
 
 Harden it once here, and every chart in the catalog moves together.
 
