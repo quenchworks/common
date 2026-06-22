@@ -2,7 +2,7 @@
 
 [English](README.md) · **العربية** · [Español](README.es.md)
 
-مخطط **مكتبة Helm** المشترك الذي يقف خلف كتالوج [QuenchWorks](https://github.com/quenchworks). إنه المكان الوحيد الذي يُعرَّف فيه الأساس الأمني، لذا ترث جميع مخططات التطبيقات الـ 54 التحصين نفسه تمامًا: تسميات متطابقة، وسياقات أمان متطابقة للحاوية والـ pod، ومُحلِّل صور قائم على البصمة (digest) فقط يجعل شحن صورة غير مثبَّتة أمرًا مستحيلًا.
+مخطط **مكتبة Helm** المشترك الذي يقف خلف كتالوج [QuenchWorks](https://github.com/quenchworks). إنه المكان الوحيد الذي يُعرَّف فيه الأساس الأمني، لذا ترث جميع مخططات التطبيقات التحصين نفسه تمامًا: تسميات متطابقة، وسياقات أمان متطابقة للحاوية والـ pod، ومُحلِّل صور قائم على البصمة (digest) فقط يجعل شحن صورة غير مثبَّتة أمرًا مستحيلًا.
 
 <p align="center">
   <a href="https://quench-works.com"><img src="https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/demo.gif" alt="QuenchWorks داخل طرفية: شغّل صورة بصفر ثغرات (0-CVE)، وتحقق منها باستخدام cosign، وانشر مخطط Helm، وراقب الـ pod وهو يصل إلى حالة Running." width="760"></a>
@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.1
+    version: 0.0.2
     repository: oci://ghcr.io/quenchworks/charts
 ```
 

@@ -2,7 +2,7 @@
 
 [English](README.md) · [العربية](README.ar.md) · **Español**
 
-El **library chart** de Helm compartido que está detrás del catálogo de [QuenchWorks](https://github.com/quenchworks). Es el único lugar donde se define la base de seguridad, así que los 54 app charts heredan exactamente el mismo endurecimiento: etiquetas idénticas, contextos de seguridad de pod y contenedor idénticos, y un resolutor de imágenes basado solo en digest que hace imposible publicar una imagen sin fijar.
+El **library chart** de Helm compartido que está detrás del catálogo de [QuenchWorks](https://github.com/quenchworks). Es el único lugar donde se define la base de seguridad, así que todos los app charts heredan exactamente el mismo endurecimiento: etiquetas idénticas, contextos de seguridad de pod y contenedor idénticos, y un resolutor de imágenes basado solo en digest que hace imposible publicar una imagen sin fijar.
 
 <p align="center">
   <a href="https://quench-works.com"><img src="https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/demo.gif" alt="QuenchWorks en una terminal: ejecuta una imagen 0-CVE, verifícala con cosign, despliega el chart de Helm y observa cómo el pod llega a Running." width="760"></a>
@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.1
+    version: 0.0.2
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
