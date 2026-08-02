@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.6
+    version: 0.0.7
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -52,7 +52,7 @@ dependencies:
 كل مساعد مبني ليُجاوَز لا ليُقاوَم:
 
 - `extraLabels` و`annotations` على كل كائن.
-- **Ingress**: مضيفات متعددة، و`paths` لكل مضيف (المضيف بلا `paths` يحصل على `/` واحد بنوع `Prefix`)، و`pathType`، وقائمة TLS، و`className` يُحذف كليًا عند عدم تعيينه ليُطبَّق افتراضي العنقود. يُحلّ منفذ الخدمة من `ingress.servicePort` ثم `service.port` ثم `service.ports.http` / `.https`، وهذا يغطي شكلَي الخدمة في الكتالوج. ويرفض إنتاج Ingress بلا قواعد، ويرفض تخمين منفذ لا يستطيع تحديده.
+- **Ingress**: مضيفات متعددة، و`paths` لكل مضيف (المضيف بلا `paths` يحصل على `/` واحد بنوع `Prefix`)، و`pathType`، وقائمة TLS، و`className` يُحذف كليًا عند عدم تعيينه ليُطبَّق افتراضي العنقود. يُحلّ منفذ الخدمة من `ingress.servicePort` ثم `service.port` و`service.ports.http` / `.https` و`service.httpPort` و`service.httpsPort` و`service.apiPort` — وهي أشكال الخدمة الأربعة المستخدمة فعلًا في الكتالوج (63 مخططًا، و14، و4، و2 على الترتيب). ويرفض إنتاج Ingress بلا قواعد، ويرفض تخمين منفذ لا يستطيع تحديده.
 - **RBAC**: `rbac.rules` (افتراضيًا **فارغة**، فلا تُمنح أي صلاحية ضمنًا)، مع `rbac.clusterScoped` و`rbac.clusterRules`. اسم `ClusterRoleBinding` يحمل اسم مساحة الأسماء، لأن الأسماء على مستوى العنقود عالمية وإصداران في مساحتين مختلفتين سيتنازعان على كائن واحد.
 - **PDB**: `minAvailable` *أو* `maxUnavailable`، و`unhealthyPodEvictionPolicy`، أو تجاوز `spec` بالكامل.
 - **HPA**: `targetKind` / `targetName` (ليتمكن مخطط StatefulSet من تحجيم نفسه)، و`behavior`، وأهداف المعالج و/أو الذاكرة، أو قائمة `metrics` مخصصة بالكامل.

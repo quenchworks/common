@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.6
+    version: 0.0.7
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -52,7 +52,7 @@ Qué manifiestos se movieron aquí se decidió midiendo el catálogo, no por gus
 Cada helper está pensado para ser sobrescrito, no para pelear con él:
 
 - `extraLabels` y `annotations` en cada objeto.
-- **Ingress**: múltiples hosts, `paths` por host (un host sin `paths` recibe un único `/` `Prefix`), `pathType`, lista TLS y `className` omitido por completo cuando no se define, para que aplique el predeterminado del clúster. El puerto de backend se resuelve desde `ingress.servicePort`, luego `service.port`, luego `service.ports.http` / `.https`, cubriendo las dos formas de service del catálogo. Se niega a generar un Ingress sin reglas y se niega a adivinar un puerto que no puede resolver.
+- **Ingress**: múltiples hosts, `paths` por host (un host sin `paths` recibe un único `/` `Prefix`), `pathType`, lista TLS y `className` omitido por completo cuando no se define, para que aplique el predeterminado del clúster. El puerto de backend se resuelve desde `ingress.servicePort`, luego `service.port`, `service.ports.http` / `.https`, `service.httpPort`, `service.httpsPort` y `service.apiPort`: las cuatro formas de service que el catálogo usa realmente (63 charts, 14, 4 y 2 respectivamente). Se niega a generar un Ingress sin reglas y se niega a adivinar un puerto que no puede resolver.
 - **RBAC**: `rbac.rules` (**vacío** por defecto, así nada se concede implícitamente), más `rbac.clusterScoped` con `rbac.clusterRules`. El nombre del `ClusterRoleBinding` incluye el namespace, porque los nombres de ámbito de clúster son globales y dos releases en namespaces distintos se disputarían un mismo objeto.
 - **PDB**: `minAvailable` *o* `maxUnavailable`, `unhealthyPodEvictionPolicy`, o una sobrescritura completa de `spec`.
 - **HPA**: `targetKind` / `targetName` (para que un chart StatefulSet pueda escalarse a sí mismo), `behavior`, objetivos de CPU y/o memoria, o una lista `metrics` totalmente personalizada.

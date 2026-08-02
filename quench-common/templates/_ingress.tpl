@@ -13,10 +13,10 @@ own TCP protocols. Expose those with service.type=LoadBalancer or the ingress
 controller's TCP passthrough instead -- shipping an `ingress.enabled` knob that
 silently does nothing would be worse than not having one.
 
-Backend service: "quench-common.fullname", i.e. the chart's own Service. Port:
-`ingress.servicePort` when set, otherwise `service.port`. The override exists
-because a chart may expose several ports (metrics, grpc) and the HTTP one is not
-always `service.port`.
+Backend service: "quench-common.fullname", i.e. the chart's own Service. The port is
+resolved from whichever service shape the chart uses (see below); an explicit
+`ingress.servicePort` always wins, and exists because a chart may expose several
+ports (metrics, grpc, replication) where none of the conventional names fit.
 
 Multi-component charts (harbor, argocd, thanos) do NOT use this: their Ingress has
 to route different paths to different Services, so they keep a bespoke template.
@@ -24,18 +24,33 @@ to route different paths to different Services, so they keep a bespoke template.
 {{- define "quench-common.ingress" -}}
 {{- if .Values.ingress.enabled -}}
 {{/*
-Port resolution, in order. The catalogue uses TWO service shapes -- single-port
-charts expose `service.port`, multi-port charts (dex, thanos, otel-collector, ...)
-expose `service.ports.<name>` -- so both are understood and an explicit override
-always wins.
+Port resolution, in order. Counted across the 83 charts that adopt this helper, the
+catalogue uses FOUR service shapes:
+
+    63  service.port                    single-port charts (opa 8181, ...)
+    14  service.httpPort                HTTP alongside a protocol port
+                                        (clickhouse 8123 + nativePort, cockroachdb
+                                        8080 + sqlPort, elasticsearch 9200 + transportPort)
+     4  service.ports.<name>            nested multi-port map (dex 5556 + grpc + telemetry)
+     2  service.apiPort                 vault / openbao, whose API is HTTP
+
+All are understood, so enabling ingress needs nothing but a host in the common case.
+When NONE resolves the template FAILS with the list it tried, rather than guessing a
+port -- guessing would route HTTP traffic at whatever that port actually speaks
+(Postgres wire protocol, the Elasticsearch transport protocol) and the failure would
+surface as a confusing 502 instead of a clear message at install time.
 */}}
 {{- $svcv := .Values.service | default dict -}}
+{{- $ports := ($svcv.ports) | default dict -}}
 {{- $port := .Values.ingress.servicePort -}}
 {{- if not $port -}}{{- $port = $svcv.port -}}{{- end -}}
-{{- if not $port -}}{{- $port = (($svcv.ports) | default dict).http -}}{{- end -}}
-{{- if not $port -}}{{- $port = (($svcv.ports) | default dict).https -}}{{- end -}}
+{{- if not $port -}}{{- $port = $ports.http -}}{{- end -}}
+{{- if not $port -}}{{- $port = $ports.https -}}{{- end -}}
+{{- if not $port -}}{{- $port = $svcv.httpPort -}}{{- end -}}
+{{- if not $port -}}{{- $port = $svcv.httpsPort -}}{{- end -}}
+{{- if not $port -}}{{- $port = $svcv.apiPort -}}{{- end -}}
 {{- if not $port -}}
-{{- fail "ingress.enabled=true but no HTTP port could be resolved: set ingress.servicePort (tried service.port, service.ports.http, service.ports.https)" -}}
+{{- fail "ingress.enabled=true but no HTTP port could be resolved: set ingress.servicePort (tried service.port, service.ports.http/.https, service.httpPort, service.httpsPort, service.apiPort)" -}}
 {{- end -}}
 {{- if not .Values.ingress.hosts -}}
 {{- fail "ingress.enabled=true but ingress.hosts is empty: an Ingress with no rules routes nothing" -}}

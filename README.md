@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.6
+    version: 0.0.7
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -52,7 +52,7 @@ Which manifests moved here was decided by measuring the catalog, not by taste. G
 Every helper is built to be overridden rather than fought:
 
 - `extraLabels` and `annotations` on each object.
-- **Ingress**: multi-host, per-host `paths` (a host with no `paths` gets one `/` `Prefix`), `pathType`, TLS list, and `className` omitted entirely when unset so the cluster default applies. The backend port resolves from `ingress.servicePort`, then `service.port`, then `service.ports.http` / `.https`, covering both service shapes in the catalog. It refuses to render an Ingress with no rules, and refuses to guess a port it cannot resolve.
+- **Ingress**: multi-host, per-host `paths` (a host with no `paths` gets one `/` `Prefix`), `pathType`, TLS list, and `className` omitted entirely when unset so the cluster default applies. The backend port resolves from `ingress.servicePort`, then `service.port`, `service.ports.http` / `.https`, `service.httpPort`, `service.httpsPort` and `service.apiPort` — the four service shapes the catalog actually uses (63 charts, 14, 4 and 2 respectively). It refuses to render an Ingress with no rules, and refuses to guess a port it cannot resolve.
 - **RBAC**: `rbac.rules` (default **empty**, so nothing is granted implicitly), plus `rbac.clusterScoped` with `rbac.clusterRules`. The `ClusterRoleBinding` name carries the namespace, because cluster-scoped names are global and two releases in different namespaces would otherwise fight over one object.
 - **PDB**: `minAvailable` *or* `maxUnavailable`, `unhealthyPodEvictionPolicy`, or a wholesale `spec` override.
 - **HPA**: `targetKind` / `targetName` (so a StatefulSet chart can scale itself), `behavior`, CPU and/or memory targets, or a fully custom `metrics` list.
