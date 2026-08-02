@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.4
+    version: 0.0.5
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -59,6 +59,44 @@ dependencies:
 - **NetworkPolicy**: `ingressPorts`، ونظائر `extraFrom` (محدد مساحة أسماء، ipBlock)، وقوائم قواعد `ingress` / `egress` كاملة، و`denyAllEgress`.
 
 لا يعتمد Ingress إلا في المخططات التي تخدم HTTP. فـ `Ingress` موجِّه HTTP، ولا يمكنه أن يتقدم PostgreSQL أو Redis أو Kafka أو etcd — تُعرَض هذه عبر `service.type=LoadBalancer` أو تمرير TCP في وحدة تحكم الـ ingress. وشحن مفتاح `ingress.enabled` لا يفعل شيئًا بصمت أسوأ من عدم وجوده.
+
+### التقسيم
+
+مفهوم واحد لكل ملف، ليقرأ مؤلف المخطط شيئًا واحدًا في كل مرة:
+
+| الملف | ما يوفره |
+| --- | --- |
+| `_names.tpl` | `name`، `fullname` (`nameOverride`، `fullnameOverride`) |
+| `_labels.tpl` | `labels`، `podTemplateLabels`، `commonAnnotations` |
+| `_selector-labels.tpl` | `selectorLabels`، `selectorLabelsBase` — **اقرأه قبل إضافة أي منها** |
+| `_image.tpl` | `image` (بالبصمة فقط)، `imagePullSecrets` |
+| `_security.tpl` | `podSecurityContext`، `containerSecurityContext` |
+| `_pod.tpl` | مفاتيح مواصفة الـ pod: `podSpecFields`، `probe`، البيئة، المجلدات، حاويات التهيئة، الحاويات الجانبية، خطافات دورة الحياة، command، args |
+| `_serviceaccount.tpl` | `serviceAccountName`، `serviceAccount` |
+| `_rbac.tpl` | `rbac` |
+| `_pdb.tpl` | `pdb` |
+| `_hpa.tpl` | `hpa` |
+| `_networkpolicy.tpl` | `networkPolicy` |
+| `_ingress.tpl` | `ingress` |
+
+لم يعد `_helpers.tpl` يعرّف شيئًا؛ صار فهرسًا للملفات أعلاه.
+
+### مفاتيح التسميات والأسماء
+
+| القيمة | تُطبَّق على | آمنة للتغيير لاحقًا؟ |
+| --- | --- | --- |
+| `nameOverride` / `fullnameOverride` | أسماء الكائنات | لا (تعيد تسمية الكائنات) |
+| `partOf` | `app.kubernetes.io/part-of` على كل كائن | نعم |
+| `commonLabels` | بيانات وصف كل كائن | **نعم** |
+| `commonAnnotations` | بيانات وصف كل كائن | **نعم** |
+| `podLabels` | قالب الـ pod فقط | **نعم** |
+| `selectorLabels` | مُحدِّد الحمل **و** قالب الـ pod | **لا — غير قابل للتغيير** |
+
+الحقل `spec.selector` غير قابل للتغيير في Deployment وStatefulSet وDaemonSet وJob. إضافة تسمية مُحدِّد إلى إصدار قائم تجعل كل `helm upgrade` لاحق يفشل برسالة `field is immutable`، والمخرج الوحيد هو حذف الحمل وإعادة إنشائه. لذلك استخدم `commonLabels` أو `podLabels` لأي تسمية تريد الاستعلام بها فقط، ولا تلجأ إلى `selectorLabels` إلا إذا كان على التسمية أن تشارك فعلًا في اختيار الـ pods — وتُضبط قبل أول تثبيت. ويمنحك `selectorLabelsBase` التسميتين المعياريتين دون الإضافات، للقوالب التي يجب أن تبقى مطابقة لحمل أُنشئ قبل إضافة أي منها.
+
+يوجد `partOf` لأن التطبيق قد *يشترط* قيمة معينة: فمدير إعدادات Argo CD لا يرى إلا ConfigMaps وSecrets الموسومة بـ `app.kubernetes.io/part-of=argocd`، وبالقيمة الافتراضية للكتالوج تصبح إعداداته غير مرئية ويموت كل مكوّن برسالة `configmap "argocd-cm" not found`.
+
+و`image.registry` اختياري ولا يُضاف إلا عند تعيينه، ليتيح توجيه مرآة معزولة عن الشبكة دون إعادة كتابة كل `repository`. ويقبل `imagePullSecrets` نصوصًا مباشرة أو خرائط `{name: ...}`.
 
 ## الإصدارات
 

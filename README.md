@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.4
+    version: 0.0.5
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -59,6 +59,44 @@ Every helper is built to be overridden rather than fought:
 - **NetworkPolicy**: `ingressPorts`, `extraFrom` peers (namespace selector, ipBlock), wholesale `ingress` / `egress` rule lists, and `denyAllEgress`.
 
 Ingress is only adopted by charts that serve HTTP. An `Ingress` is an HTTP router, so it cannot front PostgreSQL, Redis, Kafka or etcd — expose those with `service.type=LoadBalancer` or the ingress controller's TCP passthrough. Shipping an `ingress.enabled` flag that silently did nothing would be worse than not having one.
+
+### Layout
+
+One concern per file, so a chart author can read one thing at a time:
+
+| file | provides |
+| --- | --- |
+| `_names.tpl` | `name`, `fullname` (`nameOverride`, `fullnameOverride`) |
+| `_labels.tpl` | `labels`, `podTemplateLabels`, `commonAnnotations` |
+| `_selector-labels.tpl` | `selectorLabels`, `selectorLabelsBase` — **read it before adding any** |
+| `_image.tpl` | `image` (digest-only), `imagePullSecrets` |
+| `_security.tpl` | `podSecurityContext`, `containerSecurityContext` |
+| `_pod.tpl` | pod-spec knobs: `podSpecFields`, `probe`, env, volumes, init containers, sidecars, lifecycle hooks, command, args |
+| `_serviceaccount.tpl` | `serviceAccountName`, `serviceAccount` |
+| `_rbac.tpl` | `rbac` |
+| `_pdb.tpl` | `pdb` |
+| `_hpa.tpl` | `hpa` |
+| `_networkpolicy.tpl` | `networkPolicy` |
+| `_ingress.tpl` | `ingress` |
+
+`_helpers.tpl` now defines nothing; it is the index of the files above.
+
+### Label and naming knobs
+
+| value | applies to | safe to change later? |
+| --- | --- | --- |
+| `nameOverride` / `fullnameOverride` | object names | no (renames objects) |
+| `partOf` | `app.kubernetes.io/part-of` on every object | yes |
+| `commonLabels` | every object's metadata | **yes** |
+| `commonAnnotations` | every object's metadata | **yes** |
+| `podLabels` | the pod template only | **yes** |
+| `selectorLabels` | the workload selector **and** pod template | **NO — immutable** |
+
+`spec.selector` is immutable on Deployment, StatefulSet, DaemonSet and Job. Adding a selector label to a release that already exists makes every later `helm upgrade` fail with `field is immutable`, and the only way out is deleting and recreating the workload. So use `commonLabels` or `podLabels` for anything you just want to query on, and reach for `selectorLabels` only when a label must genuinely participate in pod selection — set before the first install. `selectorLabelsBase` gives the two standard selector labels without the additions, for templates that must keep matching a workload created before any were added.
+
+`partOf` exists because an application can *require* a particular value: Argo CD's settings manager only sees ConfigMaps and Secrets labelled `app.kubernetes.io/part-of=argocd`, so with the catalog default its own configuration is invisible and every component dies on `configmap "argocd-cm" not found`.
+
+`image.registry` is optional and only prepended when set, so an air-gapped mirror can be pointed at without rewriting every `repository`. `imagePullSecrets` accepts plain strings or `{name: ...}` maps.
 
 ## Versioning
 
