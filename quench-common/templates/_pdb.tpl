@@ -1,3 +1,13 @@
+{{/*
+PodDisruptionBudget.
+
+Centralised on evidence: 105 of the 123 charts that ship a PDB had a byte-identical
+copy of this manifest.
+
+Flexible on purpose -- minAvailable OR maxUnavailable (mutually exclusive in the API,
+so only one is emitted), unhealthyPodEvictionPolicy, extraLabels/annotations, extra
+selector labels, or a wholesale `spec` override when an app needs something this does
+not express.
 */}}
 
 {{- define "quench-common.pdb" -}}

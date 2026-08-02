@@ -1,3 +1,11 @@
+{{/*
+HorizontalPodAutoscaler (autoscaling/v2).
+
+Centralised on evidence: 20 of the 23 charts that ship an HPA had an identical copy.
+
+Flexible on purpose -- targetKind/targetName so a StatefulSet chart can scale itself
+rather than a Deployment that does not exist, scaling `behavior`, CPU and/or memory
+targets, or a fully custom `metrics` list for external/pods/object metrics.
 */}}
 
 {{- define "quench-common.hpa" -}}

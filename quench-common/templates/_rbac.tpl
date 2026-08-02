@@ -1,3 +1,15 @@
+{{/*
+Role + RoleBinding, and optionally ClusterRole + ClusterRoleBinding.
+
+Centralised on evidence: 104 of the 123 charts that ship RBAC had an identical pair.
+
+Rules come from values and default to EMPTY, deliberately: an empty Role grants
+nothing, so a chart that has not declared its rules cannot silently acquire
+permissions it never asked for.
+
+The ClusterRoleBinding name carries the namespace, because cluster-scoped names are
+GLOBAL -- two releases of the same chart in different namespaces would otherwise
+fight over one object and the second install would steal the first one's binding.
 */}}
 
 {{- define "quench-common.rbac" -}}

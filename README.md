@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.5
+    version: 0.0.6
     repository: oci://ghcr.io/quenchworks/charts
 ```
 

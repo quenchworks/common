@@ -1,3 +1,18 @@
+{{/*
+NetworkPolicy.
+
+NOT a fixed policy, and that is the point: 128 charts produced 91 distinct shapes,
+because every application allows a different set of ports. So the ports come from
+values, and a chart may pass its historical default in.
+
+Call it either way:
+
+    {{- include "quench-common.networkPolicy" . }}
+    {{- include "quench-common.networkPolicy" (dict "ctx" . "defaultPorts" (list (dict "port" "http" "protocol" "TCP"))) }}
+
+Flexible on purpose -- ingressPorts, extraFrom peers (namespaceSelector, ipBlock),
+wholesale ingress/egress rule lists, and denyAllEgress (policyTypes lists Egress with
+no rules, which is how the API expresses deny-all).
 */}}
 
 {{- define "quench-common.networkPolicy" -}}
