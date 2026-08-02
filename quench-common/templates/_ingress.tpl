@@ -23,9 +23,19 @@ to route different paths to different Services, so they keep a bespoke template.
 */}}
 {{- define "quench-common.ingress" -}}
 {{- if .Values.ingress.enabled -}}
-{{- $port := .Values.ingress.servicePort | default (.Values.service).port -}}
+{{/*
+Port resolution, in order. The catalogue uses TWO service shapes -- single-port
+charts expose `service.port`, multi-port charts (dex, thanos, otel-collector, ...)
+expose `service.ports.<name>` -- so both are understood and an explicit override
+always wins.
+*/}}
+{{- $svcv := .Values.service | default dict -}}
+{{- $port := .Values.ingress.servicePort -}}
+{{- if not $port -}}{{- $port = $svcv.port -}}{{- end -}}
+{{- if not $port -}}{{- $port = (($svcv.ports) | default dict).http -}}{{- end -}}
+{{- if not $port -}}{{- $port = (($svcv.ports) | default dict).https -}}{{- end -}}
 {{- if not $port -}}
-{{- fail "ingress.enabled=true but no port: set ingress.servicePort (this chart has no single service.port)" -}}
+{{- fail "ingress.enabled=true but no HTTP port could be resolved: set ingress.servicePort (tried service.port, service.ports.http, service.ports.https)" -}}
 {{- end -}}
 {{- if not .Values.ingress.hosts -}}
 {{- fail "ingress.enabled=true but ingress.hosts is empty: an Ingress with no rules routes nothing" -}}
