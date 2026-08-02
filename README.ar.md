@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.2
+    version: 0.0.4
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -33,6 +33,32 @@ dependencies:
 - **سياق أمان مُحصَّن للـ pod**: يضبط `quench-common.podSecurityContext` كلًا من `runAsNonRoot`، وuid/gid/fsGroup 1001، وseccomp `RuntimeDefault`.
 - **سياق أمان مُحصَّن للحاوية**: يضبط `quench-common.containerSecurityContext` نظام ملفات جذر للقراءة فقط، ومنع تصعيد الامتيازات، وإسقاط كل الصلاحيات (drop ALL capabilities).
 - **سطح مفاتيح ضبط مشترك**: نقاط التجاوز (override points) التي يكشفها كل مخطط بالطريقة نفسها، بما في ذلك الجدولة، والفحوص (probes)، والمتغيرات/المجلدات/تركيبات المجلدات الإضافية، وحاويات التهيئة (init containers)، والحاويات الجانبية (sidecars)، وخطافات دورة الحياة (lifecycle hooks)، وتجاوزات سياق الأمان.
+
+### الكائنات المشتركة (0.0.3 وما بعده)
+
+خمس عائلات من الملفات (manifests) كانت شبه متطابقة في كل مخطط تُصاغ الآن من هنا. يعتمدها المخطط بسطر واحد، مثلًا `templates/rbac.yaml` يحتوي على `{{- include "quench-common.rbac" . }}`.
+
+| المساعد | ما يُنتجه | التمكين عبر |
+| --- | --- | --- |
+| `quench-common.ingress` | `Ingress` | `ingress.enabled` (**افتراضيًا false**) |
+| `quench-common.serviceAccount` | `ServiceAccount` | `serviceAccount.create` |
+| `quench-common.rbac` | `Role` + `RoleBinding`، واختياريًا `ClusterRole` + `ClusterRoleBinding` | `rbac.create` |
+| `quench-common.pdb` | `PodDisruptionBudget` | `podDisruptionBudget.enabled` |
+| `quench-common.hpa` | `HorizontalPodAutoscaler` | `autoscaling.enabled` |
+| `quench-common.networkPolicy` | `NetworkPolicy` | `networkPolicy.enabled` |
+
+تحديد ما انتقل إلى هنا جاء بقياس الكتالوج، لا بالتفضيل. بتجميع المخططات الـ138 حسب الشكل الناتج: `serviceaccount.yaml` متطابق في 117 من 132، و`poddisruptionbudget.yaml` في 105 من 123، و`rbac.yaml` في 104 من 123، و`hpa.yaml` في 20 من 23. أما `networkpolicy.yaml` فأنتج 91 شكلًا مختلفًا لأن كل تطبيق يسمح بمنافذ مختلفة، لذلك يأخذ مساعده المنافذ من القيم بدل تثبيتها. و`service.yaml` أنتج 98 شكلًا مختلفًا من 128 مخططًا ويبقى عن قصد داخل كل مخطط: قائمة المنافذ هي هوية التطبيق، فأي مساعد سيحتاج إعدادات بحجم الملف الذي يستبدله.
+
+كل مساعد مبني ليُجاوَز لا ليُقاوَم:
+
+- `extraLabels` و`annotations` على كل كائن.
+- **Ingress**: مضيفات متعددة، و`paths` لكل مضيف (المضيف بلا `paths` يحصل على `/` واحد بنوع `Prefix`)، و`pathType`، وقائمة TLS، و`className` يُحذف كليًا عند عدم تعيينه ليُطبَّق افتراضي العنقود. يُحلّ منفذ الخدمة من `ingress.servicePort` ثم `service.port` ثم `service.ports.http` / `.https`، وهذا يغطي شكلَي الخدمة في الكتالوج. ويرفض إنتاج Ingress بلا قواعد، ويرفض تخمين منفذ لا يستطيع تحديده.
+- **RBAC**: `rbac.rules` (افتراضيًا **فارغة**، فلا تُمنح أي صلاحية ضمنًا)، مع `rbac.clusterScoped` و`rbac.clusterRules`. اسم `ClusterRoleBinding` يحمل اسم مساحة الأسماء، لأن الأسماء على مستوى العنقود عالمية وإصداران في مساحتين مختلفتين سيتنازعان على كائن واحد.
+- **PDB**: `minAvailable` *أو* `maxUnavailable`، و`unhealthyPodEvictionPolicy`، أو تجاوز `spec` بالكامل.
+- **HPA**: `targetKind` / `targetName` (ليتمكن مخطط StatefulSet من تحجيم نفسه)، و`behavior`، وأهداف المعالج و/أو الذاكرة، أو قائمة `metrics` مخصصة بالكامل.
+- **NetworkPolicy**: `ingressPorts`، ونظائر `extraFrom` (محدد مساحة أسماء، ipBlock)، وقوائم قواعد `ingress` / `egress` كاملة، و`denyAllEgress`.
+
+لا يعتمد Ingress إلا في المخططات التي تخدم HTTP. فـ `Ingress` موجِّه HTTP، ولا يمكنه أن يتقدم PostgreSQL أو Redis أو Kafka أو etcd — تُعرَض هذه عبر `service.type=LoadBalancer` أو تمرير TCP في وحدة تحكم الـ ingress. وشحن مفتاح `ingress.enabled` لا يفعل شيئًا بصمت أسوأ من عدم وجوده.
 
 ## الإصدارات
 

@@ -22,7 +22,7 @@ oci://ghcr.io/quenchworks/charts/quench-common
 # Chart.yaml
 dependencies:
   - name: quench-common
-    version: 0.0.2
+    version: 0.0.4
     repository: oci://ghcr.io/quenchworks/charts
 ```
 
@@ -33,6 +33,32 @@ dependencies:
 - **Hardened pod security context**: `quench-common.podSecurityContext` sets `runAsNonRoot`, uid/gid/fsGroup 1001, seccomp `RuntimeDefault`.
 - **Hardened container security context**: `quench-common.containerSecurityContext` sets a read-only root filesystem, no privilege escalation, drop ALL capabilities.
 - **A shared knob surface**: the override points every chart exposes the same way, including scheduling, probes, extra env/volumes/volumeMounts, init containers, sidecars, lifecycle hooks, and security-context overrides.
+
+### Shared objects (0.0.3+)
+
+Five families of manifest that were near-identical in every chart now render from here. A chart adopts one with a single line, e.g. `templates/rbac.yaml` containing `{{- include "quench-common.rbac" . }}`.
+
+| helper | renders | opt-in via |
+| --- | --- | --- |
+| `quench-common.ingress` | `Ingress` | `ingress.enabled` (**default false**) |
+| `quench-common.serviceAccount` | `ServiceAccount` | `serviceAccount.create` |
+| `quench-common.rbac` | `Role` + `RoleBinding`, optionally `ClusterRole` + `ClusterRoleBinding` | `rbac.create` |
+| `quench-common.pdb` | `PodDisruptionBudget` | `podDisruptionBudget.enabled` |
+| `quench-common.hpa` | `HorizontalPodAutoscaler` | `autoscaling.enabled` |
+| `quench-common.networkPolicy` | `NetworkPolicy` | `networkPolicy.enabled` |
+
+Which manifests moved here was decided by measuring the catalog, not by taste. Grouping all 138 charts by rendered shape: `serviceaccount.yaml` 117/132 identical, `poddisruptionbudget.yaml` 105/123, `rbac.yaml` 104/123, `hpa.yaml` 20/23. `networkpolicy.yaml` produced 91 distinct shapes because every app allows different ports, so its helper takes them from values instead of fixing them. `service.yaml` produced 98 distinct shapes from 128 charts and deliberately stays per-chart: the port list is the application's identity, so a helper would need as much configuration as the manifest it replaced.
+
+Every helper is built to be overridden rather than fought:
+
+- `extraLabels` and `annotations` on each object.
+- **Ingress**: multi-host, per-host `paths` (a host with no `paths` gets one `/` `Prefix`), `pathType`, TLS list, and `className` omitted entirely when unset so the cluster default applies. The backend port resolves from `ingress.servicePort`, then `service.port`, then `service.ports.http` / `.https`, covering both service shapes in the catalog. It refuses to render an Ingress with no rules, and refuses to guess a port it cannot resolve.
+- **RBAC**: `rbac.rules` (default **empty**, so nothing is granted implicitly), plus `rbac.clusterScoped` with `rbac.clusterRules`. The `ClusterRoleBinding` name carries the namespace, because cluster-scoped names are global and two releases in different namespaces would otherwise fight over one object.
+- **PDB**: `minAvailable` *or* `maxUnavailable`, `unhealthyPodEvictionPolicy`, or a wholesale `spec` override.
+- **HPA**: `targetKind` / `targetName` (so a StatefulSet chart can scale itself), `behavior`, CPU and/or memory targets, or a fully custom `metrics` list.
+- **NetworkPolicy**: `ingressPorts`, `extraFrom` peers (namespace selector, ipBlock), wholesale `ingress` / `egress` rule lists, and `denyAllEgress`.
+
+Ingress is only adopted by charts that serve HTTP. An `Ingress` is an HTTP router, so it cannot front PostgreSQL, Redis, Kafka or etcd — expose those with `service.type=LoadBalancer` or the ingress controller's TCP passthrough. Shipping an `ingress.enabled` flag that silently did nothing would be worse than not having one.
 
 ## Versioning
 
