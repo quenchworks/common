@@ -21,7 +21,33 @@ ports (metrics, grpc, replication) where none of the conventional names fit.
 Multi-component charts (harbor, argocd, thanos) do NOT use this: their Ingress has
 to route different paths to different Services, so they keep a bespoke template.
 */}}
+{{/*
+Two call forms.
+
+  {{- include "quench-common.ingress" . }}
+
+    An app chart fronting its OWN Service. Backend = quench-common.fullname, port
+    resolved from the chart's service values.
+
+  {{- include "quench-common.ingress" (dict "ctx" . "serviceName" (printf "%s-grafana" .Release.Name) "port" 3000) }}
+
+    An UMBRELLA chart fronting a SUBCHART's Service. Stacks (lgtm-stack,
+    observability-stack, identity-stack, ...) have no Service of their own -- they
+    aggregate subcharts -- so the default form would point at
+    <release>-<stack>, which does not exist. Passing the backend explicitly is what
+    makes an Ingress possible there at all. `port` may be omitted to fall back to the
+    normal resolution against .Values.service.
+*/}}
 {{- define "quench-common.ingress" -}}
+{{- $ctx := . -}}
+{{- $svcOverride := "" -}}
+{{- $portOverride := "" -}}
+{{- if and (kindIs "map" .) (hasKey . "ctx") -}}
+{{- $ctx = .ctx -}}
+{{- $svcOverride = .serviceName | default "" -}}
+{{- $portOverride = .port | default "" -}}
+{{- end -}}
+{{- with $ctx -}}
 {{- if .Values.ingress.enabled -}}
 {{/*
 Port resolution, in order. Counted across the 83 charts that adopt this helper, the
@@ -42,7 +68,7 @@ surface as a confusing 502 instead of a clear message at install time.
 */}}
 {{- $svcv := .Values.service | default dict -}}
 {{- $ports := ($svcv.ports) | default dict -}}
-{{- $port := .Values.ingress.servicePort -}}
+{{- $port := $portOverride | default .Values.ingress.servicePort -}}
 {{- if not $port -}}{{- $port = $svcv.port -}}{{- end -}}
 {{- if not $port -}}{{- $port = $ports.http -}}{{- end -}}
 {{- if not $port -}}{{- $port = $ports.https -}}{{- end -}}
@@ -55,7 +81,7 @@ surface as a confusing 502 instead of a clear message at install time.
 {{- if not .Values.ingress.hosts -}}
 {{- fail "ingress.enabled=true but ingress.hosts is empty: an Ingress with no rules routes nothing" -}}
 {{- end -}}
-{{- $svc := include "quench-common.fullname" . -}}
+{{- $svc := $svcOverride | default (include "quench-common.fullname" .) -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -94,6 +120,7 @@ spec:
                   number: {{ $port }}
           {{- end }}
     {{- end }}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
