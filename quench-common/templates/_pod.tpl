@@ -35,6 +35,18 @@ schedulerName: {{ . }}
 {{- if .Values.terminationGracePeriodSeconds }}
 terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
 {{- end }}
+{{/*
+imagePullSecrets belongs here, not left to each chart to remember. 145 of 166
+charts documented the key in values.schema.json while never emitting it: schema
+validation accepted it, the pod spec silently dropped it, and the user got an
+ImagePullBackOff with nothing pointing at the cause. That matters especially here,
+because the QuenchWorks image packages are not all public, so a private-registry
+pull secret is exactly the knob those users reach for.
+
+Charts that already include quench-common.imagePullSecrets themselves MUST drop
+that call when they move to this version, or the pod spec carries the key twice.
+*/}}
+{{- include "quench-common.imagePullSecrets" . }}
 {{- end -}}
 
 {{/*
