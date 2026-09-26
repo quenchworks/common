@@ -21,7 +21,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      # pin actions to SHAs before going public (renovate)
+      # Actions are pinned to commit SHAs, the release as a comment.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
@@ -37,8 +37,23 @@ jobs:
       - name: Lint (library chart has no installable templates)
         run: helm lint "${CHART_DIR}"
 
+      # Every chart pins quench-common by exact version, so a published version is
+      # never overwritten, on any trigger. A push that edits this workflow (it is
+      # in paths) or a dispatch without a version bump stops here with a warning.
+      - name: Refuse to overwrite a published version
+        id: published
+        run: |
+          ver="$(awk '/^version:/{print $2; exit}' "${CHART_DIR}/Chart.yaml")"
+          if helm show chart "${OCI_REPO}/quench-common" --version "${ver}" >/dev/null 2>&1; then
+            echo "::warning::quench-common ${ver} is already published and is never overwritten. Bump version in ${CHART_DIR}/Chart.yaml to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Package and push (OCI)
         id: push
+        if: steps.published.outputs.skip != 'true'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
           helm package "${CHART_DIR}" -d ./dist
@@ -47,6 +62,7 @@ jobs:
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Sign chart (cosign keyless)
+        if: steps.published.outputs.skip != 'true'
         env:
           COSIGN_YES: "true"
         run: |
