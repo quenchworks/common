@@ -44,6 +44,7 @@ Five families of manifest that were near-identical in every chart now render fro
 | `quench-common.serviceAccount` | `ServiceAccount` | `serviceAccount.create` |
 | `quench-common.rbac` | `Role` + `RoleBinding`, optionally `ClusterRole` + `ClusterRoleBinding` | `rbac.create` |
 | `quench-common.pdb` | `PodDisruptionBudget` | `podDisruptionBudget.enabled` |
+| `quench-common.tls.resources` | self-signed TLS `Secret` or cert-manager `Certificate` (nothing for `tls.existingSecret`) | `tls.enabled` (**default false**) |
 | `quench-common.hpa` | `HorizontalPodAutoscaler` | `autoscaling.enabled` |
 | `quench-common.networkPolicy` | `NetworkPolicy` | `networkPolicy.enabled` |
 
@@ -56,6 +57,7 @@ Every helper is built to be overridden rather than fought:
 - **RBAC**: `rbac.rules` (default **empty**, so nothing is granted implicitly), plus `rbac.clusterScoped` with `rbac.clusterRules`. The `ClusterRoleBinding` name carries the namespace, because cluster-scoped names are global and two releases in different namespaces would otherwise fight over one object.
 - **PDB**: `minAvailable` *or* `maxUnavailable`, `unhealthyPodEvictionPolicy`, or a wholesale `spec` override.
 - **HPA**: `targetKind` / `targetName` (so a StatefulSet chart can scale itself), `behavior`, CPU and/or memory targets, or a fully custom `metrics` list.
+- **TLS** (app-native): the chart serves TLS on its own listener with the certificate mounted at `/tls` (`tls.crt`, `tls.key`, `ca.crt`). The first source set wins: `tls.existingSecret`, then `tls.certManager` (an `issuerRef` is required), else a Helm-generated CA and certificate that `lookup` keeps across upgrades. Nonroot containers cannot bind 443, so an HTTP app listens on 8443 and its Service publishes `service.httpsPort` (443); protocol apps keep their own port. The chart wires the app's TLS flags, probe scheme and NetworkPolicy port itself.
 - **NetworkPolicy**: `ingressPorts`, `extraFrom` peers (namespace selector, ipBlock), wholesale `ingress` / `egress` rule lists, and `denyAllEgress`.
 
 Ingress is only adopted by charts that serve HTTP. An `Ingress` is an HTTP router, so it cannot front PostgreSQL, Redis, Kafka or etcd — expose those with `service.type=LoadBalancer` or the ingress controller's TCP passthrough. Shipping an `ingress.enabled` flag that silently did nothing would be worse than not having one.
@@ -78,6 +80,7 @@ One concern per file, so a chart author can read one thing at a time:
 | `_hpa.tpl` | `hpa` |
 | `_networkpolicy.tpl` | `networkPolicy` |
 | `_ingress.tpl` | `ingress` |
+| `_tls.tpl` | `tls.resources`, `tls.secretName`, `tls.volume`, `tls.volumeMount`, `tls.dnsNames` |
 
 `_helpers.tpl` now defines nothing; it is the index of the files above.
 
