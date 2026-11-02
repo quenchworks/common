@@ -140,6 +140,66 @@ data:
 {{- end -}}
 
 {{/*
+PKCS#8 copy of the certificate for servers that read PEM keys only in PKCS#8 (most JVM
+stacks): Helm's genSignedCert and cert-manager's RSA default write PKCS#1. An init container
+(any busybox image) wraps PKCS#1 in the fixed PKCS#8 header (version 0 + rsaEncryption) and
+writes /tls-pkcs8/{tls.key,tls.crt,ca.crt,tls-keystore.pem}; tls-keystore.pem is key then chain.
+PKCS#8 input passes through. Usage, both only when TLS is on:
+  initContainers:  {{ include "quench-common.tls.pkcs8InitContainer" (dict "ctx" . "image" "<busybox ref>") }}
+  volumes/mounts:  {{ include "quench-common.tls.pkcs8Volume" . }} / {{ include "quench-common.tls.pkcs8VolumeMount" . }}
+*/}}
+{{- define "quench-common.tls.pkcs8InitContainer" -}}
+{{- $ctx := .ctx -}}
+{{- if include "quench-common.tls.enabled" $ctx }}
+- name: tls-pkcs8
+  image: {{ .image | quote }}
+  securityContext:
+    {{- include "quench-common.containerSecurityContext" $ctx | nindent 4 }}
+  command:
+    - /bin/sh
+    - -c
+    - |
+      set -eu
+      derlen() { if [ "$1" -lt 128 ]; then printf '%02x' "$1"; elif [ "$1" -lt 256 ]; then printf '81%02x' "$1"; else printf '82%04x' "$1"; fi; }
+      umask 077
+      if grep -q 'BEGIN RSA PRIVATE KEY' /tls/tls.key; then
+        hex="$(sed '/-----/d' /tls/tls.key | base64 -d | od -An -v -tx1 | tr -d ' \n')"
+        oct="04$(derlen $(( ${#hex} / 2 )))$hex"
+        inner="020100300d06092a864886f70d0101010500$oct"
+        der="30$(derlen $(( ${#inner} / 2 )))$inner"
+        { echo "-----BEGIN PRIVATE KEY-----"; printf "$(printf '%s' "$der" | sed 's/../\\x&/g')" | base64 | tr -d '\n' | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > /tls-pkcs8/tls.key
+      else
+        cat /tls/tls.key > /tls-pkcs8/tls.key
+      fi
+      cat /tls/tls.crt > /tls-pkcs8/tls.crt
+      if [ -s /tls/ca.crt ]; then cat /tls/ca.crt > /tls-pkcs8/ca.crt; fi
+      cat /tls-pkcs8/tls.key /tls-pkcs8/tls.crt > /tls-pkcs8/tls-keystore.pem
+  volumeMounts:
+    - name: tls
+      mountPath: /tls
+      readOnly: true
+    - name: tls-pkcs8
+      mountPath: /tls-pkcs8
+{{- end -}}
+{{- end -}}
+
+{{- define "quench-common.tls.pkcs8Volume" -}}
+{{- if include "quench-common.tls.enabled" . }}
+- name: tls-pkcs8
+  emptyDir:
+    medium: Memory
+{{- end -}}
+{{- end -}}
+
+{{- define "quench-common.tls.pkcs8VolumeMount" -}}
+{{- if include "quench-common.tls.enabled" . }}
+- name: tls-pkcs8
+  mountPath: /tls-pkcs8
+  readOnly: true
+{{- end -}}
+{{- end -}}
+
+{{/*
 JSON schema fragment for the tls block. Charts with additionalProperties: false paste
 this under properties.tls (the library cannot inject into a chart's schema).
 */}}
