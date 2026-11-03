@@ -200,6 +200,63 @@ PKCS#8 input passes through. Usage, both only when TLS is on:
 {{- end -}}
 
 {{/*
+PKCS12 keystores for servers that read only a JDK keystore (Jetty, WildFly, NiFi, Jenkins):
+the JDK has no PEM keystore type, and busybox cannot write PKCS12. An init container on the
+QuenchWorks openssl image writes /tls-pkcs12/keystore.p12 (key + chain, alias "tls") and, when
+the Secret has ca.crt, /tls-pkcs12/truststore.p12 (the CA marked trusted for Java). Both use
+the given password; the files sit in a memory emptyDir next to the PEM key they come from.
+Usage, both only when TLS is on:
+  initContainers:  {{ include "quench-common.tls.pkcs12InitContainer" (dict "ctx" . "image" "<openssl ref>" "password" "<pw>") }}
+  volumes/mounts:  {{ include "quench-common.tls.pkcs12Volume" . }} / {{ include "quench-common.tls.pkcs12VolumeMount" . }}
+*/}}
+{{- define "quench-common.tls.pkcs12InitContainer" -}}
+{{- $ctx := .ctx -}}
+{{- if include "quench-common.tls.enabled" $ctx }}
+- name: tls-pkcs12
+  image: {{ .image | quote }}
+  securityContext:
+    {{- include "quench-common.containerSecurityContext" $ctx | nindent 4 }}
+  env:
+    - name: PKCS12_PASSWORD
+      value: {{ .password | quote }}
+  command:
+    - /bin/sh
+    - -c
+    - |
+      set -eu
+      umask 077
+      openssl pkcs12 -export -inkey /tls/tls.key -in /tls/tls.crt -name tls \
+        -passout env:PKCS12_PASSWORD -out /tls-pkcs12/keystore.p12
+      if [ -s /tls/ca.crt ]; then
+        openssl pkcs12 -export -nokeys -in /tls/ca.crt -jdktrust anyExtendedKeyUsage \
+          -passout env:PKCS12_PASSWORD -out /tls-pkcs12/truststore.p12
+      fi
+  volumeMounts:
+    - name: tls
+      mountPath: /tls
+      readOnly: true
+    - name: tls-pkcs12
+      mountPath: /tls-pkcs12
+{{- end -}}
+{{- end -}}
+
+{{- define "quench-common.tls.pkcs12Volume" -}}
+{{- if include "quench-common.tls.enabled" . }}
+- name: tls-pkcs12
+  emptyDir:
+    medium: Memory
+{{- end -}}
+{{- end -}}
+
+{{- define "quench-common.tls.pkcs12VolumeMount" -}}
+{{- if include "quench-common.tls.enabled" . }}
+- name: tls-pkcs12
+  mountPath: /tls-pkcs12
+  readOnly: true
+{{- end -}}
+{{- end -}}
+
+{{/*
 JSON schema fragment for the tls block. Charts with additionalProperties: false paste
 this under properties.tls (the library cannot inject into a chart's schema).
 */}}
