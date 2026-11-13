@@ -255,3 +255,36 @@ Usage, both only when TLS is on:
   readOnly: true
 {{- end -}}
 {{- end -}}
+
+{{/*
+JSON schema fragment for the tls block. Charts with additionalProperties: false paste
+this under properties.tls (the library cannot inject into a chart's schema).
+*/}}
+{{- define "quench-common.tls.schemaDoc" -}}
+"tls": {
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "existingSecret": { "type": "string" },
+    "certManager": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "issuerRef": {
+          "type": "object",
+          "properties": { "name": { "type": "string" }, "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"] } }
+        },
+        "dnsNames": { "type": "array", "items": { "type": "string" } },
+        "duration": { "type": "string" }
+      }
+    },
+    "selfSigned": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "validityDays": { "type": "integer", "minimum": 1 } }
+    }
+  }
+}
+{{- end -}}
