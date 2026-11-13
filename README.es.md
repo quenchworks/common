@@ -104,7 +104,7 @@ Sube el `version` del chart con un patch en cada cambio, y nunca sobrescribas un
 
 ## Release
 
-Hacer push a `main` ejecuta `.github/workflows/release-common.yml`: lint, empaquetar, hacer push del chart OCI a GHCR y firmarlo con cosign (keyless).
+Hacer push a `main` ejecuta `.github/workflows/release-common.yml`: lint, renderizar cinco charts consumidores reales (dex, vault, xyops, quickwit, uptime-kuma) con la nueva librería, empaquetar, hacer push del chart OCI a GHCR y firmarlo con cosign (keyless). La misma comprobación en local: `make test` (espera el repo de charts en `../charts`; si no, define `CHARTS=`).
 
 ## Licencia
 

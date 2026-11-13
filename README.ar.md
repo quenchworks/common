@@ -104,7 +104,7 @@ dependencies:
 
 ## الإصدار
 
-يؤدي الدفع إلى `main` إلى تشغيل `.github/workflows/release-common.yml`: الفحص (lint)، والتحزيم، ودفع مخطط OCI إلى GHCR، وتوقيعه بـ cosign (بدون مفاتيح / keyless).
+يؤدي الدفع إلى `main` إلى تشغيل `.github/workflows/release-common.yml`: الفحص (lint)، وتصيير خمسة مخططات مستهلكة حقيقية (dex وvault وxyops وquickwit وuptime-kuma) مع المكتبة الجديدة، والتحزيم، ودفع مخطط OCI إلى GHCR، وتوقيعه بـ cosign (بدون مفاتيح / keyless). الفحص نفسه محليًا: `make test` (يتوقع مستودع المخططات في `../charts`، وإلا فاضبط `CHARTS=`).
 
 ## الترخيص
 

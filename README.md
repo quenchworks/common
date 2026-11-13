@@ -107,7 +107,7 @@ Patch-bump the chart `version` on every change, and never overwrite a published 
 
 ## Release
 
-Pushing to `main` runs `.github/workflows/release-common.yml`: lint, package, push the OCI chart to GHCR, and cosign-sign it (keyless).
+Pushing to `main` runs `.github/workflows/release-common.yml`: lint, render five real consumer charts (dex, vault, xyops, quickwit, uptime-kuma) against the new library, package, push the OCI chart to GHCR, and cosign-sign it (keyless). Run the same check locally with `make test` (expects the charts repo at `../charts`; set `CHARTS=` otherwise).
 
 ## License
 

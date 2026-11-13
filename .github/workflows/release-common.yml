@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "quench-common/**"
+      - "scripts/**"
       - ".github/workflows/release-common.yml"
   workflow_dispatch:
 
@@ -36,6 +37,16 @@ jobs:
 
       - name: Lint (library chart has no installable templates)
         run: helm lint "${CHART_DIR}"
+
+      # helm lint renders nothing for a library chart: render real consumers against this tree
+      # before a version (immutable once published) goes out.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: quenchworks/charts
+          path: consumers
+          sparse-checkout: quench
+      - name: Render consumer charts against this tree
+        run: scripts/render-consumers.sh consumers
 
       # Every chart pins quench-common by exact version, so a published version is
       # never overwritten, on any trigger. A push that edits this workflow (it is
